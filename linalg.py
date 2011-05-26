@@ -163,7 +163,7 @@ class Quaternion(Vector):
 	def __mul__(x, y):
 		if isinstance(y, Vector):
 			if len(y) == 3:
-				y = quaternion([0.0] + y.tolist())
+				y = Quaternion([0.0] + y.tolist())
 
 			s = x[0]; v = x[1:]
 			t = y[0]; w = y[1:]
@@ -178,7 +178,7 @@ class Quaternion(Vector):
 	def __rmul__(y, x):
 		if isinstance(x, Vector):
 			if len(x) == 3:
-				x = quaternion([0.0] + x.tolist())
+				x = Quaternion([0.0] + x.tolist())
 
 			s = x[0]; v = x[1:]
 			t = y[0]; w = y[1:]

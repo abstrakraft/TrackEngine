@@ -1,16 +1,13 @@
 from linalg import Matrix
 
 class Model(object):
-	def __init__(self):
-		pass
-
-	def F(self, T):
+	def F(self, dt):
 		raise NotImplementedError('Model.F is a virtual function.')
 
-	def B(self, T):
+	def B(self, dt):
 		raise NotImplementedError('Model.B is a virtual function.')
 
-	def G(self, T):
+	def G(self, dt):
 		raise NotImplementedError('Model.G is a virtual function.')
 
 class Inertial2DModel(Model):
@@ -18,7 +15,30 @@ class Inertial2DModel(Model):
 		Model.__init__(self)
 		self.Q = Q
 
-	def F(self, T):
+	def F(self, dt):
+		return Matrix([[1.0,  dt, 0.0, 0.0],
+		               [0.0, 1.0, 0.0, 0.0],
+		               [0.0, 0.0, 1.0,  dt],
+		               [0.0, 0.0, 0.0, 1.0]])
+
+	def B(self, dt):
+		return Matrix([[dt**2/2,       0],
+		               [     dt,       0],
+		               [      0, dt**2/2],
+		               [      0,      dt]])
+
+	def G(self, dt):
+		return Matrix([[dt**2/2,       0],
+		               [     dt,       0],
+		               [      0, dt**2/2],
+		               [      0,      dt]])
+
+class Grav2DModel(Model):
+	def __init__(self, Q):
+		Model.__init__(self)
+		self.Q = Q
+
+	def F(self, dt):
 		return Matrix([[1.0,   T, 0.0, 0.0],
 		               [0.0, 1.0, 0.0, 0.0],
 		               [0.0, 0.0, 1.0,   T],
