@@ -3,7 +3,7 @@ from linalg import Vector
 
 class CoordSystem(object):
 	def __init__(self, origin, rot):
-		self.origin = Vector(origin)
+		self.origin = mat(origin)
 		self.rot = rot
 
 	def transform(self, coord):

@@ -1,4 +1,4 @@
-from linalg import Matrix
+from numpy import *
 
 class Model(object):
 	def F(self, dt):
@@ -16,22 +16,22 @@ class Inertial2DModel(Model):
 		self.Q = Q
 
 	def F(self, dt):
-		return Matrix([[1.0,  dt, 0.0, 0.0],
-		               [0.0, 1.0, 0.0, 0.0],
-		               [0.0, 0.0, 1.0,  dt],
-		               [0.0, 0.0, 0.0, 1.0]])
+		return mat([[1.0,  dt, 0.0, 0.0],
+		            [0.0, 1.0, 0.0, 0.0],
+		            [0.0, 0.0, 1.0,  dt],
+		            [0.0, 0.0, 0.0, 1.0]])
 
 	def B(self, dt):
-		return Matrix([[dt**2/2,       0],
-		               [     dt,       0],
-		               [      0, dt**2/2],
-		               [      0,      dt]])
+		return mat([[dt**2/2,       0],
+		            [     dt,       0],
+		            [      0, dt**2/2],
+		            [      0,      dt]])
 
 	def G(self, dt):
-		return Matrix([[dt**2/2,       0],
-		               [     dt,       0],
-		               [      0, dt**2/2],
-		               [      0,      dt]])
+		return mat([[dt**2/2,       0],
+		            [     dt,       0],
+		            [      0, dt**2/2],
+		            [      0,      dt]])
 
 class Grav2DModel(Model):
 	def __init__(self, Q):
@@ -39,19 +39,19 @@ class Grav2DModel(Model):
 		self.Q = Q
 
 	def F(self, dt):
-		return Matrix([[1.0,   T, 0.0, 0.0],
-		               [0.0, 1.0, 0.0, 0.0],
-		               [0.0, 0.0, 1.0,   T],
-		               [0.0, 0.0, 0.0, 1.0]])
+		return mat([[1.0,  dt, 0.0, 0.0],
+		            [0.0, 1.0, 0.0, 0.0],
+		            [0.0, 0.0, 1.0,  dt],
+		            [0.0, 0.0, 0.0, 1.0]])
 
 	def B(self, T):
-		return Matrix([[T**2/2,      0],
-		               [     T,      0],
-		               [     0, T**2/2],
-		               [     0,      T]])
+		return mat([[dt**2/2,       0],
+		            [     dt,       0],
+		            [      0, dt**2/2],
+		            [      0,      dt]])
 
 	def G(self, T):
-		return Matrix([[T**2/2,      0],
-		               [     T,      0],
-		               [     0, T**2/2],
-		               [     0,      T]])
+		return mat([[dt**2/2,       0],
+		            [     dt,       0],
+		            [      0, dt**2/2],
+		            [      0,      dt]])

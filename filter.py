@@ -1,10 +1,9 @@
-from linalg import Matrix, Vector
+from numpy import *
 
 import system
 
 import math
 import operator
-import random
 
 class Filter(object):
 	def __init__(self):
@@ -20,26 +19,29 @@ class KalmanFilter(Filter):
 	def __init__(self, model, H, x_init, P_init, t_init):
 		Filter.__init__(self)
 		self.model = model
-		self.H = H
-		self.x = x_init
-		self.P = P_init
+		self.H = mat(H)
+		self.x = mat(x_init)
+		self.P = mat(P_init)
 		self.t = t_init
 
-	def update(self, t, (z, R), u):
+	def update(self, t, z, R, u = None):
 		self.extrap(t, u)
-		y = z - self.H * self.x
-		S = self.H * self.P * self.H.transpose() + R
-		K = self.P * self.H.transpose() * S.inverse()
 
-		self.x = self.x + K * y
-		self.P = (Matrix.identity(self.x.dim()) - K*self.H)*self.P
+		(x, P, H) = (self.x, self.P, self.H)
+
+		y = z - H*x
+		S = H*P*H.T + R
+		K = P*H.T*S.I
+
+		self.x = x + K*y
+		self.P = (eye(len(x)) - K*H)*P
 
 	def extrap(self, t, u):
 		F = self.model.F(t - self.t)
 		B = self.model.B(t - self.t)
 		G = self.model.G(t - self.t)
 		self.x = F*self.x + B*u
-		self.P = F*self.P*F.transpose() + G*self.model.Q*G.transpose()
+		self.P = F*self.P*F.T + G*self.model.Q*G.T
 		self.t = t
 
 #unfinished
@@ -77,15 +79,16 @@ class ParticleFilter(Filter):
 		self.H = H
 		self.t = t_init
 
-		self.particles = [system.System(self.model, Vector.random(x_init, P_init), self.t)
+		#TODO: Really? A separate system for every particle?  Fix this.
+		self.particles = [system.System(self.model, random.multivariate_normal(x_init, P_init), self.t)
 		                  for i in xrange(self.particle_count)]
 		self.weights = [1.0/self.particle_count]*self.particle_count
-		self.update_estirixmate()
+		self.update_estimate()
 
 	def update(self, t, (z, R), u):
 		self.extrap(t, u)
-		Rinv = R.inverse()
-		self.weights = [(lambda diff: w*math.exp(int((diff.transpose()*Rinv*diff).m)*-0.5))(z - self.H*p.x)
+		Rinv = linalg.inv(R)
+		self.weights = [(lambda diff: w*math.exp(-0.5*diff*Rinv*diff))(z - self.H*p.x)
 		                for (p,w) in zip(self.particles, self.weights)]
 		weight_sum = sum(self.weights)
 		#print weight_sum
@@ -108,7 +111,7 @@ class ParticleFilter(Filter):
 		self.x = reduce(operator.add,
 		                [p.x*w for (p,w) in zip(self.particles, self.weights)])
 		self.P = reduce(operator.add,
-		                [(p.x-self.x)*(p.x-self.x).transpose()*w
+		                [(p.x-self.x)*(p.x-self.x).T*w
 		                 for (p,w) in zip(self.particles, self.weights)])
 
 	def resample(self):

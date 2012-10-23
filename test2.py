@@ -3,7 +3,7 @@ import filter
 import model
 import system
 import math
-import cairowindow
+import matplotlib.pyplot as plt
 
 def main():
 	Q = matrix([[1.0, 1.0],[1.0, 2.0]])
@@ -29,11 +29,8 @@ def main():
 
 	track1 = [(kf.x, kf.P)]
 	track2 = [(pf.x, pf.P)]
-	print kf.x
-	print pf.x
 
 	for i in range(1,25):
-		print i
 		if i==13:
 			u = u*-1
 		s.propogate(i, u)
@@ -53,42 +50,17 @@ def main():
 			pf.extrap(t, u)
 			track2.append((pf.x, pf.P))
 
-	tw = TrackWindow(truth, msmnt, track1, track2)
-	tw.run()
+	t1 = truth[0]
+	for x in truth[1:]:
+		t1 = bmat([t1,x])
 
-class TrackWindow(cairowindow.CairoWindowSurface):
-	def __init__(self, truth, msmnt, track1, track2):
-		cairowindow.CairoWindowSurface.__init__(self)
-		self.truth = truth
-		self.msmnt = msmnt
-		self.track1 = track1
-		self.track2 = track2
+	print t1
 
-	def draw(self, cr, width, height):
-		cairowindow.CairoWindowSurface.draw(self, cr, width, height)
-		offset = 8.0
-		cr.translate(offset, height-offset)
-		cr.scale(1.0, -1.0)
+	fig = plt.figure()
+	ax = fig.add_subplot(111)#, projection='2d')
+	ax.scatter(t1[1,:], t1[3,:])
 
-		cr.set_source_rgb(0.0, 0.0, 1.0)
-		for t in self.truth:
-			cr.arc(t[0], t[2], 8.0, 0, 2*math.pi)
-			cr.fill()
+	plt.show()
 
-		cr.set_source_rgb(0.5, 0.5, 0.5)
-		for t in self.msmnt:
-			cr.arc(t[0], t[1], 6.0, 0, 2*math.pi)
-			cr.fill()
-
-		cr.set_source_rgb(0.0, 1.0, 0.0)
-		for (x,P) in self.track1:
-			cr.arc(x[0], x[2], 4.0, 0, 2*math.pi)
-			cr.fill()
-
-		cr.set_source_rgb(1.0, 0.0, 0.0)
-		for (x,P) in self.track2:
-			cr.arc(x[0], x[2], 3.0, 0, 2*math.pi)
-			cr.fill()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
 	main()
