@@ -16,32 +16,34 @@ class Filter(object):
 		raise NotImplementedError('Filter.extrap is a virtual function.')
 
 class KalmanFilter(Filter):
-	def __init__(self, model, H, x_init, P_init, t_init):
+	def __init__(self, plant, observer, x_init, P_init, t_init):
 		Filter.__init__(self)
-		self.model = model
-		self.H = mat(H)
+		self.plant = plant
+		self.observer = observer
 		self.x = mat(x_init)
 		self.P = mat(P_init)
 		self.t = t_init
 
-	def update(self, t, z, R, u = None):
+	def update(self, t, z, R, u=None):
 		self.extrap(t, u)
 
-		(x, P, H) = (self.x, self.P, self.H)
+		(x, P, H) = (self.x, self.P, self.observer.H)
 
-		y = z - H*x
+		y = z - self.observer.H*x
 		S = H*P*H.T + R
 		K = P*H.T*S.I
 
 		self.x = x + K*y
 		self.P = (eye(len(x)) - K*H)*P
 
-	def extrap(self, t, u):
-		F = self.model.F(t - self.t)
-		B = self.model.B(t - self.t)
-		G = self.model.G(t - self.t)
-		self.x = F*self.x + B*u
-		self.P = F*self.P*F.T + G*self.model.Q*G.T
+	def extrap(self, t, u=None):
+		F = self.plant.F(t - self.t)
+		B = self.plant.B(t - self.t)
+		G = self.plant.G(t - self.t)
+		self.x = F*self.x
+		if u is not None:
+			self.x += B*u
+		self.P = F*self.P*F.T + G*self.plant.Q*G.T
 		self.t = t
 
 #unfinished
@@ -73,16 +75,19 @@ class ExtendedKalmanFilter(Filter):
 class ParticleFilter(Filter):
 	particle_count = 100
 
-	def __init__(self, model, H, x_init, P_init, t_init):
+	def __init__(self, plant, observer, x_init, P_init, t_init):
 		Filter.__init__(self)
-		self.model = model
-		self.H = H
+		self.plant = plant
+		self.observer = observer
+		self.x = mat(x_init)
+		self.P = mat(P_init)
 		self.t = t_init
 
 		#TODO: Really? A separate system for every particle?  Fix this.
-		self.particles = [system.System(self.model, random.multivariate_normal(x_init, P_init), self.t)
-		                  for i in xrange(self.particle_count)]
-		self.weights = [1.0/self.particle_count]*self.particle_count
+		self.particles = mat(random.multivariate_normal(array(x_init).squeeze(), P_init, particle_count)).T
+		#self.particles = [system.System(self.model, random.multivariate_normal(x_init, P_init), self.t)
+		#                  for i in xrange(self.particle_count)]
+		self.weights = mat([1.0/self.particle_count]*self.particle_count)
 		self.update_estimate()
 
 	def update(self, t, (z, R), u):

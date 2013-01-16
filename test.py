@@ -1,94 +1,61 @@
 from numpy import *
 import filter
-import model
+import plant
+import observer
 import system
 import math
-import cairowindow
+import matplotlib.pyplot as plt
 
 def main():
-	Q = matrix([[1.0, 1.0],[1.0, 2.0]])
-	H = matrix([[1.0, 0.0, 0.0, 0.0],
-	            [0.0, 0.0, 1.0, 0.0]])
-	R = matrix([[10.0, 0.0],[0.0, 10.0]])
-	u = matrix([0, -9.8]).T
+	res = 10
 
-	x_init = matrix([0.0, 50.0, 0.0, 100.0]).T
-	P_init = matrix([[0.2, 0.0, 0.0, 0.0],
-	                 [0.0, 1.0, 0.0, 0.0],
-	                 [0.0, 0.0, 0.2, 0.0],
-	                 [0.0, 0.0, 0.0, 1.0]])
-	m = model.Inertial2DModel(Q)
-	s = system.System(m, x_init, 0)
+	d = 2
+	n = 2
+	q = 4
+	B = plant.PWCA
+	u = mat([0.0, -9.8]).T
+	R = mat([[1000.0, 0.0],[0.0, 1000.0]])
 
-	truth = [x_init]
-	msmnt = [H*x_init + matrix([random.normal(0, math.sqrt(R[0,0])), random.normal(0, math.sqrt(R[1,1]))]).T]
-	kf = filter.KalmanFilter(m, H, matrix([msmnt[0][0], 50.0, msmnt[0][1], 100.0]).T, P_init, 0)
-	pf = filter.KalmanFilter(m, H, matrix([msmnt[0][0], 50.0, msmnt[0][1], 100.0]).T, P_init, 0)
-	#pf = filter.ParticleFilter(m, H, Vector([msmnt[0][0], 50.0, msmnt[0][1], 100.0]), P_init, 0)
-	#pf = filter.NewFilter(m, H, Vector([msmnt[0][0], 50.0, msmnt[0][1], 100.0]), P_init, 0)
+	x_init = mat([0.0, 50.0, 0.0, 100.0]).T
+	P_init = mat([[0.2, 0.0, 0.0, 0.0],
+	              [0.0, 1.0, 0.0, 0.0],
+	              [0.0, 0.0, 0.2, 0.0],
+	              [0.0, 0.0, 0.0, 1.0]])
 
-	track1 = [(kf.x, kf.P)]
-	track2 = [(pf.x, pf.P)]
-	print kf.x
-	print pf.x
+	kp = plant.CV_PWCA_Plant(d, q, B)
+	ko = observer.CP_Observer(d, n, R)
+	s = system.System(kp, ko, x_init, 0)
+
+	truth = x_init
+	msmt = s.observe()
+	kf = filter.KalmanFilter(kp, ko, matrix([msmt[0,0], 50.0, msmt[1,0], 100.0]).T, P_init, 0)
+
+	track1 = kf.x
+
+	for j in range(1,res):
+		t = float(j)/res
+		s.propagate(t, u)
+		truth = bmat([truth, s.x])
 
 	for i in range(1,25):
-		print i
-		if i==13:
-			u = u*-1
-		s.propogate(i, u)
-		truth.append(s.x)
-		msmnt.append(H*s.x + matrix([random.normal(0, math.sqrt(R[0,0])), random.normal(0, math.sqrt(R[1,1]))]).T)
-		kf.update(i, (msmnt[-1], R), u)
-		track1.append((kf.x, kf.P))
-		pf.update(i, (msmnt[-1], R), u)
-		track2.append((pf.x, pf.P))
-		res = 20
-		for j in range(res):
+		if i==13: u = u*-1
+		s.propagate(i,u)
+		truth = bmat([truth, s.x])
+		msmt = bmat([msmt, s.observe()])
+		kf.update(i, msmt[:,-1], R, u)
+		track1 = bmat([track1, kf.x])
+
+		for j in range(1, res):
 			t = i + float(j)/res
-			s.propogate(t, u)
-			truth.append(s.x)
-			kf.extrap(t, u)
-			track1.append((kf.x, kf.P))
-			pf.extrap(t, u)
-			track2.append((pf.x, pf.P))
+			s.propagate(t, u)
+			truth = bmat([truth, s.x])
+			#kf.extrap(t, u)
+			#track1 = bmat([track1, kf.x])
 
-	tw = TrackWindow(truth, msmnt, track1, track2)
-	tw.run()
+	plt.plot(truth[0,:].T, truth[2,:].T, 'b-')
+	plt.plot(track1[0,:].T, track1[2,:].T, 'r+-')
+	plt.plot(msmt[0,:].T, msmt[1,:].T, 'kx',)
+	plt.show()
 
-class TrackWindow(cairowindow.CairoWindowSurface):
-	def __init__(self, truth, msmnt, track1, track2):
-		cairowindow.CairoWindowSurface.__init__(self)
-		self.truth = truth
-		self.msmnt = msmnt
-		self.track1 = track1
-		self.track2 = track2
-
-	def draw(self, cr, width, height):
-		cairowindow.CairoWindowSurface.draw(self, cr, width, height)
-		offset = 8.0
-		cr.translate(offset, height-offset)
-		cr.scale(1.0, -1.0)
-
-		cr.set_source_rgb(0.0, 0.0, 1.0)
-		for t in self.truth:
-			cr.arc(t[0], t[2], 8.0, 0, 2*math.pi)
-			cr.fill()
-
-		cr.set_source_rgb(0.5, 0.5, 0.5)
-		for t in self.msmnt:
-			cr.arc(t[0], t[1], 6.0, 0, 2*math.pi)
-			cr.fill()
-
-		cr.set_source_rgb(0.0, 1.0, 0.0)
-		for (x,P) in self.track1:
-			cr.arc(x[0], x[2], 4.0, 0, 2*math.pi)
-			cr.fill()
-
-		cr.set_source_rgb(1.0, 0.0, 0.0)
-		for (x,P) in self.track2:
-			cr.arc(x[0], x[2], 3.0, 0, 2*math.pi)
-			cr.fill()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
 	main()
