@@ -1,8 +1,8 @@
 from numpy import *
+from math import *
 
 import system
 
-import math
 import operator
 
 class Filter(object):
@@ -93,7 +93,7 @@ class ParticleFilter(Filter):
 	def update(self, t, (z, R), u):
 		self.extrap(t, u)
 		Rinv = linalg.inv(R)
-		self.weights = [(lambda diff: w*math.exp(-0.5*diff*Rinv*diff))(z - self.H*p.x)
+		self.weights = [(lambda diff: w*exp(-0.5*diff*Rinv*diff))(z - self.H*p.x)
 		                for (p,w) in zip(self.particles, self.weights)]
 		weight_sum = sum(self.weights)
 		#print weight_sum
