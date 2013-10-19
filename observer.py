@@ -2,7 +2,7 @@ from numpy import *
 from scipy.linalg import block_diag
 
 def CP_block(N):
-	return mat([[1] + [0]*(N-1)])
+	return mat([1] + [0]*(N-1))
 
 def CP(D, N):
 	return block_diag(*[CP_block(N)]*D)
