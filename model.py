@@ -30,7 +30,7 @@ def PWCA(dt, D):
 	return block_diag(*[PWCA_block(dt)]*D)
 
 #D is the number of dimensions, N is the number of derivatives
-class LinearPlant(object):
+class LinearModel(object):
 	def __init__(self, D, N, F, B, G, Q=None):
 		self.D = D
 		self.N = N
@@ -48,7 +48,7 @@ class LinearPlant(object):
 
 	def B(self, dt):
 		if self.B_func is None:
-			return self.B_func
+			return None
 		else:
 			return self.B_func(dt, self.D)
 
@@ -63,6 +63,29 @@ class LinearPlant(object):
 			ret_x += self.B(dt)*u
 		return ret_x
 
-class CV_PWCA_Plant(LinearPlant):
+	#TODO: optimize?
+	def project_indices(self, D, N):
+		x = []
+		y = []
+		min_N = min(self.N, N)
+		for d in range(min(self.D, D)):
+			x.extend(range(self.N*d,self.N*d+min_N))
+			y.extend(range(     N*d,     N*d+min_N))
+		return x, y
+
+	# Projects this filter's state to different D,N
+	def project_state(self, x, D, N):
+		xdx, ydx = self.project_indices(D, N)
+		y = mat(zeros((D*N, 1)))
+		y[ydx] = x[xdx]
+		return y
+
+	def project_cov(self, Px, D, N):
+		xdx, ydx = self.project_indices(D, N)
+		Py = mat(zeros((D*N, D*N)))
+		Py[ix_(ydx,ydx)] = Px[ix_(xdx,xdx)]
+		return Py
+
+class CV_PWCA_Model(LinearModel):
 	def __init__(self, D, q, B=None):
-		LinearPlant.__init__(self, D, 2, CV, B, PWCA, q*mat(eye(D)))
+		LinearModel.__init__(self, D, 2, CV, B, PWCA, q*mat(eye(D)))

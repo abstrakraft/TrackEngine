@@ -16,9 +16,9 @@ class Filter(object):
 		raise NotImplementedError('Filter.extrap is a virtual function.')
 
 class KalmanFilter(Filter):
-	def __init__(self, plant, observer, x_init, P_init, t_init):
+	def __init__(self, model, observer, x_init, P_init, t_init):
 		Filter.__init__(self)
-		self.plant = plant
+		self.model = model
 		self.observer = observer
 		self.x = mat(x_init)
 		self.P = mat(P_init)
@@ -37,13 +37,13 @@ class KalmanFilter(Filter):
 		self.P = (eye(len(x)) - K*H)*P
 
 	def extrap(self, t, u=None):
-		F = self.plant.F(t - self.t)
-		B = self.plant.B(t - self.t)
-		G = self.plant.G(t - self.t)
+		F = self.model.F(t - self.t)
+		B = self.model.B(t - self.t)
+		G = self.model.G(t - self.t)
 		self.x = F*self.x
 		if u is not None:
 			self.x += B*u
-		self.P = F*self.P*F.T + G*self.plant.Q*G.T
+		self.P = F*self.P*F.T + G*self.model.Q*G.T
 		self.t = t
 
 #unfinished
@@ -75,9 +75,9 @@ class ExtendedKalmanFilter(Filter):
 class ParticleFilter(Filter):
 	particle_count = 100
 
-	def __init__(self, plant, observer, x_init, P_init, t_init):
+	def __init__(self, model, observer, x_init, P_init, t_init):
 		Filter.__init__(self)
-		self.plant = plant
+		self.model = model
 		self.observer = observer
 		self.x = mat(x_init)
 		self.P = mat(P_init)

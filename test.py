@@ -1,6 +1,6 @@
 from numpy import *
 import filter
-import plant
+import model
 import observer
 import system
 import math
@@ -12,7 +12,7 @@ def main():
 	d = 2
 	n = 2
 	q = 4
-	B = plant.PWCA
+	B = model.PWCA
 	u = mat([0.0, -9.8]).T
 	R = mat([[1000.0, 0.0],[0.0, 1000.0]])
 
@@ -22,13 +22,13 @@ def main():
 	              [0.0, 0.0, 0.2, 0.0],
 	              [0.0, 0.0, 0.0, 1.0]])
 
-	kp = plant.CV_PWCA_Plant(d, q, B)
+	km = model.CV_PWCA_Model(d, q, B)
 	ko = observer.CP_Observer(d, n, R)
-	s = system.System(kp, ko, x_init, 0)
+	s = system.System(km, ko, x_init, 0)
 
 	truth = x_init
 	msmt = s.observe()
-	kf = filter.KalmanFilter(kp, ko, matrix([msmt[0,0], 50.0, msmt[1,0], 100.0]).T, P_init, 0)
+	kf = filter.KalmanFilter(km, ko, matrix([msmt[0,0], 50.0, msmt[1,0], 100.0]).T, P_init, 0)
 
 	track1 = kf.x
 
