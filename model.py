@@ -77,28 +77,12 @@ class LinearModel(object):
 			ret_x += self.B(dt)*u
 		return ret_x
 
-	#TODO: optimize?
-	def project_indices(self, D, N):
-		x = []
-		y = []
-		min_N = min(self.N, N)
-		for d in range(min(self.D, D)):
-			x.extend(range(self.N*d,self.N*d+min_N))
-			y.extend(range(     N*d,     N*d+min_N))
-		return x, y
-
-	# Projects this filter's state to different D,N
+	# Project a state from this model to another
 	def project_state(self, x, D, N):
-		xdx, ydx = self.project_indices(D, N)
-		y = mat(zeros((D*N, 1)))
-		y[ydx] = x[xdx]
-		return y
+		return transform.project_state(x, self.D, self.N, D, N)
 
 	def project_cov(self, Px, D, N):
-		xdx, ydx = self.project_indices(D, N)
-		Py = mat(zeros((D*N, D*N)))
-		Py[ix_(ydx,ydx)] = Px[ix_(xdx,xdx)]
-		return Py
+		return transform.project_cov(Px, self.D, self.N, D, N)
 
 class CV_PWCA_Model(LinearModel):
 	def __init__(self, D, q, B=None):

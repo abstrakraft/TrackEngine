@@ -1,5 +1,29 @@
+from numpy import *
 import math
-from linalg import Vector
+
+#TODO: optimize?
+def project_indices(Dx, Nx, Dy, Ny):
+	x = []
+	y = []
+	min_N = min(Nx, Ny)
+	for d in range(min(Dx, Dy)):
+		x.extend(range(Nx*d, Nx*d+min_N))
+		y.extend(range(Ny*d, Ny*d+min_N))
+	return x, y
+
+def project_state(x, Dx, Nx, Dy, Ny):
+	xdx, ydx = project_indices(Dx, Nx, Dy, Ny)
+	y = mat(zeros((Dy*Ny, 1)))
+	y[ydx] = x[xdx]
+	return y
+
+def project_cov(Px, Dx, Nx, Dy, Ny):
+	xdx, ydx = project_indices(Dx, Nx, Dy, Ny)
+	Py = mat(zeros((Dy*Ny, Dy*Ny)))
+	Py[ix_(ydx,ydx)] = Px[ix_(xdx,xdx)]
+	return Py
+
+# everything below is most likely broken
 
 def cart2cart(v, src, dst):
 	return dst.rot.inverse().transform(src.origin + src.rot.transform(v) - dst.origin)
