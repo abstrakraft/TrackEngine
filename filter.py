@@ -27,9 +27,11 @@ class KalmanFilter(Filter):
 	def update(self, t, z, R, u=None):
 		self.extrap(t, u)
 
-		(x, P, H) = (self.x, self.P, self.observer.H)
+		(x, P) = (self.x, self.P)
 
-		y = z - self.observer.H*x
+		H = self.observer.get_H(self.model.D, self.model.N)
+
+		y = z - H*x
 		S = H*P*H.T + R
 		K = P*H.T*S.I
 
