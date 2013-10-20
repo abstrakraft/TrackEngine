@@ -1,33 +1,47 @@
 from numpy import *
 from scipy.linalg import block_diag
 
+import transform
+
+# Propogation Models
 def CV_block(dt):
 	return mat([[1.0, dt],
 	            [0.0, 1.0]])
+
+def CV(dt, D):
+	return block_diag(*[CV_block(dt)]*D)
 
 def CA_block(dt):
 	return mat([[1.0,  dt, dt**2/2],
 	            [0.0, 1.0,      dt],
 	            [0.0, 0.0,     1.0]])
 
-def PWCV_block(dt):
-	return mat([dt, 1, 0]).T
-
-def PWCA_block(dt):
-	return mat([dt**2/2, dt]).T
-
-
-def CV(dt, D):
-	return block_diag(*[CV_block(dt)]*D)
-
 def CA(dt, D):
 	return block_diag(*[CA_block(dt)]*D)
 
-def PWCV(dt, D):
-	block_diag(*[PWCV_block(dt)]*D)
+# Noise/Control models
+def PWCV_block(dt):
+	return mat([dt, 1]).T
+def PWCA_block(dt):
+	return mat([dt**2/2, dt, 1]).T
+def PWCJ_block(dt):
+	return mat([dt**3/6, dt**2/2, dt, 1]).T
 
-def PWCA(dt, D):
-	return block_diag(*[PWCA_block(dt)]*D)
+def block2mat(block, D, N):
+	b = mat(zeros((N,1)))
+	nz_terms = min(len(block), N)
+	b[0:nz_terms] = block[0:nz_terms]
+	return block_diag(*[b]*D)
+
+def PWCV(dt, D, N):
+	return block2mat(PWCV_block(dt), D, N)
+
+def PWCA(dt, D, N):
+	return block2mat(PWCA_block(dt), D, N)
+
+def PWCJ(dt, D, N):
+	return block2mat(PWCJ_block(dt), D, N)
+
 
 #D is the number of dimensions, N is the number of derivatives
 class LinearModel(object):
@@ -50,10 +64,10 @@ class LinearModel(object):
 		if self.B_func is None:
 			return None
 		else:
-			return self.B_func(dt, self.D)
+			return self.B_func(dt, self.D, self.N)
 
 	def G(self, dt):
-		return self.G_func(dt, self.D)
+		return self.G_func(dt, self.D, self.N)
 
 	def propagate(self, x, dt, u=None):
 		v = mat(random.multivariate_normal(self.__mean,
@@ -89,3 +103,7 @@ class LinearModel(object):
 class CV_PWCA_Model(LinearModel):
 	def __init__(self, D, q, B=None):
 		LinearModel.__init__(self, D, 2, CV, B, PWCA, q*mat(eye(D)))
+
+class CA_PWCJ_Model(LinearModel):
+	def __init__(self, D, q, B=None):
+		LinearModel.__init__(self, D, 3, CA, B, PWCJ, q*mat(eye(D)))
