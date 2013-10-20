@@ -13,6 +13,9 @@ def frange(start, stop, step):
 		x += step
 
 def main():
+
+	random.seed(1)
+
 	T_start = 0.0
 	T_stop = 20.0
 	T_step = 1.0

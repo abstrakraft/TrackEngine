@@ -33,7 +33,7 @@ class KalmanFilter(Filter):
 
 		y = z - H*x
 		S = H*P*H.T + R
-		K = P*H.T*S.I
+		K = P*H.T*S.I #got "ValueError: array must not contain infs or NaNs" once
 
 		self.x = x + K*y
 		self.P = (eye(len(x)) - K*H)*P
