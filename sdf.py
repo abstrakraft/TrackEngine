@@ -52,6 +52,8 @@ def main():
 	#Filters
 	#############################################################################
 
+	imm_filters = []
+
 	#CV
 	cv_q = 0.1
 	cv_model = model.CV_PWCA_Model(d, cv_q)
@@ -60,6 +62,7 @@ def main():
 	                 [   0.0, 0.0]])
 
 	cv_filter = filter.KalmanFilter(cv_model, truth_observer, cv_x_init, cv_P_init, T_start)
+	imm_filters.append(filter.KalmanFilter(cv_model, truth_observer, cv_x_init, cv_P_init, T_start))
 
 	#CA
 	ca_q = 0.1
@@ -70,6 +73,13 @@ def main():
 	                 [   0.0,  0.0, 10.0]])
 
 	ca_filter = filter.KalmanFilter(ca_model, truth_observer, ca_x_init, ca_P_init, T_start)
+	imm_filters.append(filter.KalmanFilter(ca_model, truth_observer, ca_x_init, ca_P_init, T_start))
+
+	#IMM
+	imm_pie = mat([[0.9, 0.1],
+	               [0.1, 0.9]])
+	imm_mu_init = mat([0.5, 0.5]).T
+	imm_filter = filter.IMM(imm_filters, imm_pie, imm_mu_init)
 
 	#############################################################################
 	# Record keeping
@@ -77,9 +87,10 @@ def main():
 	T = mat(list(frange(T_start, T_stop, T_step)))
 	truth = truth_x_init
 	msmt = msmt_init
-	track1 = cv_filter.x
-	track2 = ca_filter.x
-
+	cv_hist = cv_filter.x
+	ca_hist = ca_filter.x
+	imm_hist = imm_filter.x
+	mu_hist = imm_filter.mu
 
 	#############################################################################
 	#Simulation
@@ -98,19 +109,27 @@ def main():
 		#Track Update
 		#import pdb; pdb.set_trace()
 		cv_filter.update(t, msmt[:,-1], R)
-		track1 = bmat([track1, cv_filter.x])
+		cv_hist = bmat([cv_hist, cv_filter.x])
 
 		ca_filter.update(t, msmt[:,-1], R)
-		track2 = bmat([track2, ca_filter.x])
-		#mode = bmat([mode
+		ca_hist = bmat([ca_hist, ca_filter.x])
 
-	#print truth.T
-	#print track.T
+		imm_filter.update(t, msmt[:,-1], R)
+		imm_hist = bmat([imm_hist, imm_filter.x])
+		mu_hist = bmat([mu_hist, imm_filter.mu])
 
+	print truth.T
+	#print cv_hist.T
+
+	plt.subplot(211)
 	plt.plot(T.T, truth[0,:].T, 'b-')
-	plt.plot(T.T, track1[0,:].T, 'r+-')
-	plt.plot(T.T, track2[0,:].T, 'g*-')
+	plt.plot(T.T, cv_hist[0,:].T, 'r+-')
+	plt.plot(T.T, ca_hist[0,:].T, 'g+-')
+	plt.plot(T.T, imm_hist[0,:].T, 'm+-')
 	plt.plot(T.T, msmt[0,:].T, 'kx',)
+	plt.subplot(212)
+	plt.plot(T.T, mu_hist[0,:].T, 'r+-')
+	plt.plot(T.T, mu_hist[1,:].T, 'g+-')
 	plt.show()
 
 if __name__ == '__main__':
